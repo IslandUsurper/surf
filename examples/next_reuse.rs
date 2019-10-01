@@ -5,12 +5,12 @@ use surf::middleware::{Body, HttpClient, Middleware, Next, Request, Response};
 
 struct Doubler;
 
-impl<C: HttpClient> Middleware<C> for Doubler {
+impl Middleware for Doubler {
     fn handle<'a>(
         &'a self,
         req: Request,
-        client: C,
-        next: Next<'a, C>,
+        client: Box<dyn HttpClient>,
+        next: Next<'a>,
     ) -> BoxFuture<'a, Result<Response, surf::Exception>> {
         if req.method().is_safe() {
             let mut new_req = Request::new(Body::empty());

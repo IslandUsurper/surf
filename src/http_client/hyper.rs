@@ -16,7 +16,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
-use super::{Body, HttpClient, Request, Response};
+use super::{Body, ClientError, HttpClient, Request, Response};
 
 /// Hyper HTTP Client.
 #[derive(Debug)]
@@ -56,9 +56,7 @@ impl Clone for HyperClient {
 }
 
 impl HttpClient for HyperClient {
-    type Error = hyper::error::Error;
-
-    fn send(&self, req: Request) -> BoxFuture<'static, Result<Response, Self::Error>> {
+    fn send(&self, req: Request) -> BoxFuture<'static, Result<Response, ClientError>> {
         let client = self.client.clone();
         Box::pin(async move {
             // Convert the request body.

@@ -1,4 +1,4 @@
-use super::{Body, HttpClient, Request, Response};
+use super::{Body, ClientError, HttpClient, Request, Response};
 
 use futures::future::BoxFuture;
 
@@ -34,9 +34,7 @@ impl Clone for IsahcClient {
 }
 
 impl HttpClient for IsahcClient {
-    type Error = isahc::Error;
-
-    fn send(&self, req: Request) -> BoxFuture<'static, Result<Response, Self::Error>> {
+    fn send(&self, req: Request) -> BoxFuture<'static, Result<Response, ClientError>> {
         let client = self.client.clone();
         Box::pin(async move {
             let (parts, body) = req.into_parts();

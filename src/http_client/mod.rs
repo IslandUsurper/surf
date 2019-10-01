@@ -20,6 +20,42 @@ pub(crate) mod wasm;
 #[cfg(feature = "native-client")]
 pub(crate) mod native;
 
+pub enum ClientError {
+    #[cfg(all(feature = "hyper-client", not(target_arch = "wasm32")))]
+    Hyper(::hyper::error::Error),
+    #[cfg(all(feature = "curl-client", not(target_arch = "wasm32")))]
+    Isahc(::isahc::Error),
+    #[cfg(all(feature = "wasm-client", target_arch = "wasm32"))]
+    Wasm(std::io::Error),
+}
+
+impl Error for ClientError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.0)
+    }
+}
+
+#[cfg(all(feature = "hyper-client", not(target_arch = "wasm32")))]
+impl From<::hyper::error::Error> for ClientError {
+    fn from(err: ::hyper::error::Error) -> ClientError {
+        ClientError::Hyper(err)
+    }
+}
+
+#[cfg(all(feature = "curl-client", not(target_arch = "wasm32")))]
+impl From<::isahc::Error> for ClientError {
+    fn from(err: ::isahc::Error) -> ClientError {
+        ClientError::Isahc(err)
+    }
+}
+
+#[cfg(all(feature = "wasm-client", target_arch = "wasm32"))]
+impl From<std::io::Error> for ClientError {
+    fn from(err: std::io::Error) -> ClientError {
+        ClientError::Wasm(err)
+    }
+}
+
 /// An HTTP Request type with a streaming body.
 pub type Request = http::Request<Body>;
 
@@ -41,11 +77,8 @@ pub type Response = http::Response<Body>;
 /// How `Clone` is implemented is up to the implementors, but in an ideal scenario combining this
 /// with the `Client` builder will allow for high connection reuse, improving latency.
 pub trait HttpClient: Debug + Unpin + Send + Sync + Clone + 'static {
-    /// The associated error type.
-    type Error: Error + Send + Sync;
-
     /// Perform a request.
-    fn send(&self, req: Request) -> BoxFuture<'static, Result<Response, Self::Error>>;
+    fn send(&self, req: Request) -> BoxFuture<'static, Result<Response, ClientError>>;
 }
 
 /// The raw body of an http request or response.

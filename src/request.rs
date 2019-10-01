@@ -12,7 +12,6 @@ use crate::Exception;
 use crate::Response;
 
 use std::fmt;
-use std::fmt::Debug;
 use std::fs;
 use std::future::Future;
 use std::io;
@@ -27,13 +26,13 @@ use super::http_client::native::NativeClient;
 use std::convert::TryFrom;
 
 /// An HTTP request, returns a `Response`.
-pub struct Request<C: HttpClient + Debug + Unpin + Send + Sync> {
+pub struct Request {
     /// Holds a `http_client::HttpClient` implementation.
-    client: Option<C>,
+    client: Option<Box<dyn HttpClient>>,
     /// Holds the state of the request.
     req: Option<http_client::Request>,
     /// Holds the inner middleware.
-    middleware: Option<Vec<Arc<dyn Middleware<C>>>>,
+    middleware: Option<Vec<Arc<dyn Middleware>>>,
     /// Holds the state of the `impl Future`.
     fut: Option<BoxFuture<'static, Result<Response, Exception>>>,
     /// Holds a reference to the Url
@@ -41,7 +40,7 @@ pub struct Request<C: HttpClient + Debug + Unpin + Send + Sync> {
 }
 
 #[cfg(feature = "native-client")]
-impl Request<NativeClient> {
+impl Request {
     /// Create a new instance.
     ///
     /// This method is particularly useful when input URLs might be passed by third parties, and
@@ -61,16 +60,16 @@ impl Request<NativeClient> {
     /// # Ok(()) }
     /// ```
     pub fn new(method: http::Method, url: Url) -> Self {
-        Self::with_client(method, url, NativeClient::new())
+        Self::with_client(method, url, Box::new(NativeClient::new()))
     }
 }
 
-impl<C: HttpClient> Request<C> {
+impl Request {
     /// Create a new instance with an `HttpClient` instance.
     // TODO(yw): hidden from docs until we make the traits public.
     #[doc(hidden)]
     #[allow(missing_doc_code_examples)]
-    pub fn with_client(method: http::Method, url: Url, client: C) -> Self {
+    pub fn with_client(method: http::Method, url: Url, client: Box<dyn HttpClient>) -> Self {
         let mut req = http_client::Request::new(Body::empty());
         *req.method_mut() = method;
         *req.uri_mut() = url.as_str().parse().unwrap();
@@ -104,7 +103,7 @@ impl<C: HttpClient> Request<C> {
     ///     .await?;
     /// # Ok(()) }
     /// ```
-    pub fn middleware(mut self, mw: impl Middleware<C>) -> Self {
+    pub fn middleware(mut self, mw: impl Middleware) -> Self {
         self.middleware.as_mut().unwrap().push(Arc::new(mw));
         self
     }
@@ -560,7 +559,7 @@ impl<C: HttpClient> Request<C> {
     }
 }
 
-impl<C: HttpClient> Future for Request<C> {
+impl Future for Request {
     type Output = Result<Response, Exception>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -587,7 +586,7 @@ impl<C: HttpClient> Future for Request<C> {
 
 #[cfg(feature = "native-client")]
 impl<R: AsyncRead + Unpin + Send + 'static> TryFrom<http::Request<Box<R>>>
-    for Request<NativeClient>
+    for Request
 {
     type Error = io::Error;
 
@@ -601,14 +600,14 @@ impl<R: AsyncRead + Unpin + Send + 'static> TryFrom<http::Request<Box<R>>>
     }
 }
 
-impl<C: HttpClient> Into<http::Request<Body>> for Request<C> {
+impl Into<http::Request<Body>> for Request {
     /// Converts a `surf::Request` to an `http::Request`.
     fn into(self) -> http::Request<Body> {
         self.req.unwrap()
     }
 }
 
-impl<C: HttpClient> fmt::Debug for Request<C> {
+impl fmt::Debug for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.req, f)
     }
