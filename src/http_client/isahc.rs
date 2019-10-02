@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 /// Curl-based HTTP Client.
 #[derive(Debug)]
-pub struct IsahcClient {
+pub(crate) struct IsahcClient {
     client: Arc<isahc::HttpClient>,
 }
 
@@ -18,7 +18,7 @@ impl Default for IsahcClient {
 
 impl IsahcClient {
     /// Create a new instance.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             client: Arc::new(isahc::HttpClient::new().unwrap()),
         }

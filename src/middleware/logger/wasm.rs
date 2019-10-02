@@ -4,6 +4,7 @@ use crate::middleware::{Middleware, Next, Request, Response};
 use futures::future::BoxFuture;
 
 use std::fmt::Arguments;
+use std::sync::Arc;
 
 /// Log each request's duration.
 #[derive(Debug)]
@@ -23,7 +24,7 @@ impl Middleware for Logger {
     fn handle<'a>(
         &'a self,
         req: Request,
-        client: Box<dyn HttpClient>,
+        client: Arc<dyn HttpClient>,
         next: Next<'a>,
     ) -> BoxFuture<'a, Result<Response, crate::Exception>> {
         Box::pin(async move {

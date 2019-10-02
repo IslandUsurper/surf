@@ -9,7 +9,7 @@ use std::task::{Context, Poll};
 
 /// WebAssembly HTTP Client.
 #[derive(Debug)]
-pub struct WasmClient {
+pub(crate) struct WasmClient {
     _priv: (),
 }
 

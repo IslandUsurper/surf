@@ -1,5 +1,7 @@
 use crate::http_client::HttpClient;
 use crate::Request;
+use std::sync::Arc;
+use std::fmt;
 
 #[cfg(feature = "native-client")]
 use super::http_client::native::NativeClient;
@@ -17,9 +19,15 @@ use super::http_client::native::NativeClient;
 /// let (str1, str2) = futures::future::try_join(req1, req2).await?;
 /// # Ok(()) }
 /// ```
-#[derive(Debug, Default)]
+#[derive(Clone)]
 pub struct Client {
-    client: Box<dyn HttpClient>,
+    client: Arc<dyn HttpClient>,
+}
+
+impl fmt::Debug for Client {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Client {{}}")
+    }
 }
 
 #[cfg(feature = "native-client")]
@@ -35,7 +43,7 @@ impl Client {
     /// # Ok(()) }
     /// ```
     pub fn new() -> Self {
-        Self::with_client(NativeClient::new())
+        Self::with_client(Arc::new(NativeClient::new()))
     }
 }
 
@@ -44,7 +52,7 @@ impl Client {
     // TODO(yw): hidden from docs until we make the traits public.
     #[doc(hidden)]
     #[allow(missing_doc_code_examples)]
-    pub fn with_client(client: Box<dyn HttpClient>) -> Self {
+    pub fn with_client(client: Arc<dyn HttpClient>) -> Self {
         Self { client }
     }
 

@@ -20,7 +20,7 @@ use super::{Body, ClientError, HttpClient, Request, Response};
 
 /// Hyper HTTP Client.
 #[derive(Debug)]
-pub struct HyperClient {
+pub(crate) struct HyperClient {
     client: Arc<hyper::Client<HttpsConnector<RuntimeTcpConnector>, hyper::Body>>,
 }
 

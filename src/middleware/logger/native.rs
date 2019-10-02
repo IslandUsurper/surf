@@ -5,6 +5,7 @@ use futures::future::BoxFuture;
 use std::fmt::Arguments;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time;
+use std::sync::Arc;
 
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -26,7 +27,7 @@ impl Middleware for Logger {
     fn handle<'a>(
         &'a self,
         req: Request,
-        client: Box<dyn HttpClient>,
+        client: Arc<dyn HttpClient>,
         next: Next<'a>,
     ) -> BoxFuture<'a, Result<Response, crate::Exception>> {
         Box::pin(async move {

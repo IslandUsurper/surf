@@ -28,7 +28,7 @@ use std::convert::TryFrom;
 /// An HTTP request, returns a `Response`.
 pub struct Request {
     /// Holds a `http_client::HttpClient` implementation.
-    client: Option<Box<dyn HttpClient>>,
+    client: Option<Arc<dyn HttpClient>>,
     /// Holds the state of the request.
     req: Option<http_client::Request>,
     /// Holds the inner middleware.
@@ -60,7 +60,7 @@ impl Request {
     /// # Ok(()) }
     /// ```
     pub fn new(method: http::Method, url: Url) -> Self {
-        Self::with_client(method, url, Box::new(NativeClient::new()))
+        Self::with_client(method, url, Arc::new(NativeClient::new()))
     }
 }
 
@@ -69,7 +69,7 @@ impl Request {
     // TODO(yw): hidden from docs until we make the traits public.
     #[doc(hidden)]
     #[allow(missing_doc_code_examples)]
-    pub fn with_client(method: http::Method, url: Url, client: Box<dyn HttpClient>) -> Self {
+    pub fn with_client(method: http::Method, url: Url, client: Arc<dyn HttpClient>) -> Self {
         let mut req = http_client::Request::new(Body::empty());
         *req.method_mut() = method;
         *req.uri_mut() = url.as_str().parse().unwrap();

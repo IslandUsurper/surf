@@ -20,6 +20,7 @@ pub(crate) mod wasm;
 #[cfg(feature = "native-client")]
 pub(crate) mod native;
 
+#[derive(Debug)]
 pub enum ClientError {
     #[cfg(all(feature = "hyper-client", not(target_arch = "wasm32")))]
     Hyper(::hyper::error::Error),
@@ -31,7 +32,27 @@ pub enum ClientError {
 
 impl Error for ClientError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(&self.0)
+        match self {
+            #[cfg(all(feature = "hyper-client", not(target_arch = "wasm32")))]
+            Self::Hyper(err) => Some(err),
+            #[cfg(all(feature = "curl-client", not(target_arch = "wasm32")))]
+            Self::Isahc(err) => Some(err),
+            #[cfg(all(feature = "wasm-client", target_arch = "wasm32"))]
+            Self::Wasm(err) => Some(err),
+        }
+    }
+}
+
+impl fmt::Display for ClientError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            #[cfg(all(feature = "hyper-client", not(target_arch = "wasm32")))]
+            Self::Hyper(err) => fmt::Display::fmt(&err, f),
+            #[cfg(all(feature = "curl-client", not(target_arch = "wasm32")))]
+            Self::Isahc(err) => fmt::Display::fmt(&err, f),
+            #[cfg(all(feature = "wasm-client", target_arch = "wasm32"))]
+            Self::Wasm(err) => fmt::Display::fmt(&err, f),
+        }
     }
 }
 
@@ -76,7 +97,7 @@ pub type Response = http::Response<Body>;
 ///
 /// How `Clone` is implemented is up to the implementors, but in an ideal scenario combining this
 /// with the `Client` builder will allow for high connection reuse, improving latency.
-pub trait HttpClient: Debug + Unpin + Send + Sync + Clone + 'static {
+pub trait HttpClient: Unpin + Send + Sync + 'static {
     /// Perform a request.
     fn send(&self, req: Request) -> BoxFuture<'static, Result<Response, ClientError>>;
 }
